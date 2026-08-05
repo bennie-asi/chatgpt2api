@@ -24,15 +24,15 @@ export interface ImageStorageSyncResult {
 }
 
 export interface RetentionCleanupRequest {
-  log_retention_days?: number
-  image_retention_days?: number
+  log_retention_hours?: number
+  image_retention_hours?: number
 }
 
 export interface RetentionCleanupSection {
   removed: number
   kept?: number
   removed_size_bytes: number
-  retention_days: number
+  retention_hours: number
   dry_run: boolean
 }
 

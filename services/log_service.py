@@ -59,7 +59,7 @@ def cleanup_old_logs() -> dict[str, int | bool]:
     from services.config import config
     from services.retention_cleanup_service import retention_cleanup_coordinator
 
-    return retention_cleanup_coordinator.run_logs(config.log_retention_days)
+    return retention_cleanup_coordinator.run_logs(config.log_retention_hours)
 
 
 def _auto_cleanup_worker(stop_event: threading.Event) -> None:

@@ -190,7 +190,7 @@ curl http://localhost:3000/v1/images/generations \
 | `image_account_concurrency`      | `1`          | 单账号图片并发上限，可设置为 1–3                                                         |
 | `image_stream_timeout_secs`      | `80`         | 图片上游 SSE / HTTP 流最长等待时间                                                       |
 | `image_poll_timeout_secs`        | `60`         | 图片结果解析与轮询最长等待时间                                                           |
-| `log_retention_days`             | `30`         | 调用日志自动保留天数                                                                     |
+| `log_retention_hours`            | `24`         | 调用日志自动保留小时数                                                                   |
 
 其余设置通过控制台维护。配置项的权威默认值与约束以当前接口投影为准。
 

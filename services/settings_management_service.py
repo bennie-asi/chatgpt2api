@@ -50,8 +50,8 @@ _MANAGED_TOP_LEVEL_FIELDS = (
     "proxy_runtime",
     "base_url",
     "refresh_account_interval_minute",
-    "image_retention_days",
-    "log_retention_days",
+    "image_retention_hours",
+    "log_retention_hours",
     "image_poll_timeout_secs",
     "image_stream_timeout_secs",
     "image_account_concurrency",
@@ -236,8 +236,8 @@ _FIELD_SPECS: dict[str, dict[str, Any]] = {
     "proxy_runtime.clearance.warm_up_on_start": _field_metadata(False),
     "base_url": _field_metadata(""),
     "refresh_account_interval_minute": _numeric_field_metadata("refresh_account_interval_minute"),
-    "image_retention_days": _numeric_field_metadata("image_retention_days"),
-    "log_retention_days": _numeric_field_metadata("log_retention_days"),
+    "image_retention_hours": _numeric_field_metadata("image_retention_hours"),
+    "log_retention_hours": _numeric_field_metadata("log_retention_hours"),
     "image_poll_timeout_secs": _numeric_field_metadata("image_poll_timeout_secs"),
     "image_stream_timeout_secs": _numeric_field_metadata("image_stream_timeout_secs"),
     "image_account_concurrency": _numeric_field_metadata("image_account_concurrency"),
@@ -481,13 +481,13 @@ class SettingsManagementService:
                 "refresh_account_interval_minute",
                 effective.get("refresh_account_interval_minute"),
             ),
-            image_retention_days=normalize_integer_setting(
-                "image_retention_days",
-                effective.get("image_retention_days"),
+            image_retention_hours=normalize_integer_setting(
+                "image_retention_hours",
+                effective.get("image_retention_hours"),
             ),
-            log_retention_days=normalize_integer_setting(
-                "log_retention_days",
-                effective.get("log_retention_days"),
+            log_retention_hours=normalize_integer_setting(
+                "log_retention_hours",
+                effective.get("log_retention_hours"),
             ),
             image_poll_timeout_secs=normalize_integer_setting(
                 "image_poll_timeout_secs",

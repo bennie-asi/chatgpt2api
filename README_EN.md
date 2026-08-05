@@ -190,7 +190,7 @@ Available models depend on the upstream accounts and the current `/v1/models` re
 | `image_account_concurrency` | `1` | Per-account image concurrency, configurable from 1 to 3 |
 | `image_stream_timeout_secs` | `80` | Maximum wait for the upstream image SSE/HTTP stream |
 | `image_poll_timeout_secs` | `60` | Maximum wait for image result polling and parsing |
-| `log_retention_days` | `30` | Automatic call-record retention period |
+| `log_retention_hours` | `24` | Automatic call-record retention period in hours |
 
 Other settings are managed through the console. The current backend projection is authoritative for defaults and constraints.
 

@@ -26,16 +26,16 @@ ImageSpaceRunner = Callable[[], dict[str, Any] | None]
 ImageTargetRunner = Callable[[int, bool], dict[str, Any]]
 
 
-def _run_log_cleanup(retention_days: int, dry_run: bool) -> CleanupResult:
+def _run_log_cleanup(retention_hours: int, dry_run: bool) -> CleanupResult:
     if dry_run:
-        return log_service.preview_cleanup_old(retention_days)
-    return log_service.cleanup_old(retention_days)
+        return log_service.preview_cleanup_old(retention_hours)
+    return log_service.cleanup_old(retention_hours)
 
 
-def _run_image_cleanup(retention_days: int, dry_run: bool) -> CleanupResult:
+def _run_image_cleanup(retention_hours: int, dry_run: bool) -> CleanupResult:
     if dry_run:
-        return preview_image_retention_cleanup(retention_days)
-    return cleanup_image_retention(retention_days)
+        return preview_image_retention_cleanup(retention_hours)
+    return cleanup_image_retention(retention_hours)
 
 
 def _enforce_image_free_space() -> dict[str, Any] | None:
@@ -51,7 +51,7 @@ def _enforce_image_free_space() -> dict[str, Any] | None:
     }
 
 
-def _retention_days(value: int | None, fallback: int) -> int:
+def _retention_hours(value: int | None, fallback: int) -> int:
     try:
         return max(1, int(value or fallback))
     except (TypeError, ValueError):
@@ -253,24 +253,24 @@ class RetentionCleanupCoordinator:
     def run_retention(
         self,
         *,
-        log_retention_days: int | None = None,
-        image_retention_days: int | None = None,
+        log_retention_hours: int | None = None,
+        image_retention_hours: int | None = None,
         dry_run: bool = False,
     ) -> dict[str, Any]:
-        log_days = _retention_days(log_retention_days, config.log_retention_days)
-        image_days = _retention_days(image_retention_days, config.image_retention_days)
+        log_hours = _retention_hours(log_retention_hours, config.log_retention_hours)
+        image_hours = _retention_hours(image_retention_hours, config.image_retention_hours)
         with self._run_owner():
             if dry_run:
-                logs = self._log_runner(log_days, True)
-                images = self._image_runner(image_days, True)
+                logs = self._log_runner(log_hours, True)
+                images = self._image_runner(image_hours, True)
             else:
                 self._mark_started()
                 results: dict[str, Any] = {}
                 errors: dict[str, str] = {}
                 try:
-                    logs = self._log_runner(log_days, False)
+                    logs = self._log_runner(log_hours, False)
                     results["logs"] = logs
-                    images = self._image_runner(image_days, False)
+                    images = self._image_runner(image_hours, False)
                     results["images"] = images
                 except Exception as exc:
                     domain = "images" if "logs" in results else "logs"
@@ -283,34 +283,34 @@ class RetentionCleanupCoordinator:
         total_size = int(logs.get("removed_size_bytes") or 0) + int(images.get("removed_size_bytes") or 0)
         return {
             "dry_run": dry_run,
-            "logs": {**logs, "retention_days": log_days},
-            "images": {**images, "retention_days": image_days},
+            "logs": {**logs, "retention_hours": log_hours},
+            "images": {**images, "retention_hours": image_hours},
             "total_removed": total_removed,
             "total_size_bytes": total_size,
         }
 
-    def run_logs(self, retention_days: int | None = None, *, dry_run: bool = False) -> CleanupResult:
-        days = _retention_days(retention_days, config.log_retention_days)
+    def run_logs(self, retention_hours: int | None = None, *, dry_run: bool = False) -> CleanupResult:
+        hours = _retention_hours(retention_hours, config.log_retention_hours)
         with self._run_owner():
             if dry_run:
-                return self._log_runner(days, True)
+                return self._log_runner(hours, True)
             self._mark_started()
             try:
-                result = self._log_runner(days, False)
+                result = self._log_runner(hours, False)
             except Exception as exc:
                 self._mark_finished(results={}, errors={"logs": str(exc)}, domains=("logs",))
                 raise
             self._mark_finished(results={"logs": result}, errors={}, domains=("logs",))
             return result
 
-    def run_images(self, retention_days: int | None = None, *, dry_run: bool = False) -> CleanupResult:
-        days = _retention_days(retention_days, config.image_retention_days)
+    def run_images(self, retention_hours: int | None = None, *, dry_run: bool = False) -> CleanupResult:
+        hours = _retention_hours(retention_hours, config.image_retention_hours)
         with self._run_owner():
             if dry_run:
-                return self._image_runner(days, True)
+                return self._image_runner(hours, True)
             self._mark_started()
             try:
-                result = self._image_runner(days, False)
+                result = self._image_runner(hours, False)
             except Exception as exc:
                 self._mark_finished(results={}, errors={"images": str(exc)}, domains=("images",))
                 raise
@@ -358,12 +358,12 @@ class RetentionCleanupCoordinator:
         self._mark_started()
         if stop_event is None or not stop_event.is_set():
             try:
-                result["logs"] = self._log_runner(config.log_retention_days, False)
+                result["logs"] = self._log_runner(config.log_retention_hours, False)
             except Exception as exc:
                 result["errors"]["logs"] = str(exc)
         if stop_event is None or not stop_event.is_set():
             try:
-                result["images"] = self._image_runner(config.image_retention_days, False)
+                result["images"] = self._image_runner(config.image_retention_hours, False)
                 if enforce_image_free_space and (stop_event is None or not stop_event.is_set()):
                     result["image_space"] = self._image_space_runner()
             except Exception as exc:

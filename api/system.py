@@ -113,8 +113,8 @@ class BackupDeleteRequest(BaseModel):
 
 
 class RetentionCleanupRequest(BaseModel):
-    log_retention_days: int | None = None
-    image_retention_days: int | None = None
+    log_retention_hours: int | None = None
+    image_retention_hours: int | None = None
 
 
 class AccountCleanupRequest(BaseModel):
@@ -136,17 +136,17 @@ def _settings_write_error_message(exc: OSError) -> str:
 
 def _retention_cleanup_payload(body: RetentionCleanupRequest | None = None, *, dry_run: bool) -> dict[str, Any]:
     body = body or RetentionCleanupRequest()
-    log_days = body.log_retention_days or config.log_retention_days
-    image_days = body.image_retention_days or config.image_retention_days
+    log_hours = body.log_retention_hours or config.log_retention_hours
+    image_hours = body.image_retention_hours or config.image_retention_hours
     return retention_cleanup_coordinator.run_retention(
-        log_retention_days=log_days,
-        image_retention_days=image_days,
+        log_retention_hours=log_hours,
+        image_retention_hours=image_hours,
         dry_run=dry_run,
     )
 
 
 def _notify_retention_cleanup_if_changed(changed_fields: list[str]) -> None:
-    retention_fields = {"log_retention_days", "image_retention_days"}
+    retention_fields = {"log_retention_hours", "image_retention_hours"}
     if retention_fields.intersection(changed_fields):
         retention_cleanup_coordinator.notify_retention_change()
 

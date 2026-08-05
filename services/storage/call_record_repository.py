@@ -40,6 +40,7 @@ class CallRecordModel(DatabaseBase):
     __table_args__ = (
         Index("ix_call_records_type_sequence", "type", "sequence"),
         Index("ix_call_records_day_sequence", "event_day", "sequence"),
+        Index("ix_call_records_time_sequence", "event_time", "sequence"),
         Index("ix_call_records_outcome_sequence", "outcome", "sequence"),
         Index("ix_call_records_endpoint_sequence", "endpoint", "sequence"),
         Index("ix_call_records_model_sequence", "model", "sequence"),
@@ -321,10 +322,10 @@ class CallRecordRepository:
         finally:
             session.close()
 
-    def cleanup_before(self, cutoff_day: str, *, dry_run: bool) -> dict[str, int]:
+    def cleanup_before(self, cutoff_time: str, *, dry_run: bool) -> dict[str, int]:
         session = self.Session()
         try:
-            filters = (CallRecordModel.event_day < cutoff_day,)
+            filters = (CallRecordModel.event_time < cutoff_time,)
             rows = session.scalars(select(CallRecordModel).where(*filters)).all()
             removed = len(rows)
             removed_size_bytes = sum(
@@ -332,7 +333,7 @@ class CallRecordRepository:
                 for row in rows
             )
             kept = int(session.scalar(
-                select(func.count(CallRecordModel.sequence)).where(CallRecordModel.event_day >= cutoff_day)
+                select(func.count(CallRecordModel.sequence)).where(CallRecordModel.event_time >= cutoff_time)
             ) or 0)
             if removed and not dry_run:
                 session.execute(delete(CallRecordModel).where(*filters))

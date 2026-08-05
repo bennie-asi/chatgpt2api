@@ -31,8 +31,8 @@
               :settings="localSettings"
               :fields="settingsFields"
               :refresh-account-interval-field="refreshAccountIntervalField"
-              :image-retention-days-field="imageRetentionDaysField"
-              :log-retention-days-field="logRetentionDaysField"
+              :image-retention-hours-field="imageRetentionHoursField"
+              :log-retention-hours-field="logRetentionHoursField"
               :image-poll-timeout-field="imagePollTimeoutField"
               :image-stream-timeout-field="imageStreamTimeoutField"
               :image-account-concurrency-field="imageAccountConcurrencyField"
@@ -424,21 +424,21 @@ const settingsFields = computed<SettingsFields>(() => settingsStore.view?.fields
 const fieldReadOnly = (path: string) => settingsFieldReadOnly(settingsFields.value, path)
 const fieldMetadata = (path: string) => settingsFields.value[path]
 
-const imageRetentionDaysField = useNumberSettingField(
-  () => localSettings.value?.image_retention_days,
+const imageRetentionHoursField = useNumberSettingField(
+  () => localSettings.value?.image_retention_hours,
   (value) => {
     if (!localSettings.value) return
-    localSettings.value.image_retention_days = value
+    localSettings.value.image_retention_hours = value
   },
-  { integer: true, metadata: () => fieldMetadata('image_retention_days') },
+  { integer: true, metadata: () => fieldMetadata('image_retention_hours') },
 )
-const logRetentionDaysField = useNumberSettingField(
-  () => localSettings.value?.log_retention_days,
+const logRetentionHoursField = useNumberSettingField(
+  () => localSettings.value?.log_retention_hours,
   (value) => {
     if (!localSettings.value) return
-    localSettings.value.log_retention_days = value
+    localSettings.value.log_retention_hours = value
   },
-  { integer: true, metadata: () => fieldMetadata('log_retention_days') },
+  { integer: true, metadata: () => fieldMetadata('log_retention_hours') },
 )
 const refreshAccountIntervalField = useNumberSettingField(
   () => localSettings.value?.refresh_account_interval_minute,
@@ -515,8 +515,8 @@ const backupRotationKeepField = useNumberSettingField(
 )
 
 const numberSettingFields = [
-  imageRetentionDaysField,
-  logRetentionDaysField,
+  imageRetentionHoursField,
+  logRetentionHoursField,
   refreshAccountIntervalField,
   imagePollTimeoutField,
   imageStreamTimeoutField,

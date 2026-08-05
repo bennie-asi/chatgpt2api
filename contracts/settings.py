@@ -182,8 +182,8 @@ class _SettingsEditableFields(_StrictModel):
     proxy_runtime: ProxyRuntimePatch = Field(default_factory=ProxyRuntimePatch)
     base_url: str = ""
     refresh_account_interval_minute: int = _numeric_field("refresh_account_interval_minute")
-    image_retention_days: int = _numeric_field("image_retention_days")
-    log_retention_days: int = _numeric_field("log_retention_days")
+    image_retention_hours: int = _numeric_field("image_retention_hours")
+    log_retention_hours: int = _numeric_field("log_retention_hours")
     image_poll_timeout_secs: int = _numeric_field("image_poll_timeout_secs")
     image_stream_timeout_secs: int = _numeric_field("image_stream_timeout_secs")
     image_account_concurrency: int = _numeric_field("image_account_concurrency")

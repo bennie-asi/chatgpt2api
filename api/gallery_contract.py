@@ -73,7 +73,7 @@ class GalleryPage(BaseModel):
     items: list[GalleryRow]
     total: int = Field(ge=0)
     total_size_bytes: int = Field(ge=0)
-    retention_days: int = Field(ge=1)
+    retention_hours: int = Field(ge=1)
     facets: GalleryFacets
     media_type: GalleryMediaFilter
     page: int = Field(ge=1)
@@ -87,7 +87,7 @@ class GalleryCleanupResult(BaseModel):
 
     removed: int = Field(ge=0)
     removed_size_bytes: int = Field(ge=0)
-    retention_days: int = Field(ge=1)
+    retention_hours: int = Field(ge=1)
     message: str = Field(min_length=1)
 
 

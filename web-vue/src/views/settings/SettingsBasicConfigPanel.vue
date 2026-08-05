@@ -22,16 +22,16 @@
 
       <FormField label="图片自动清理">
         <template #label-extra>
-          <HelpTip text="自动删除多少天前的本地图片。" />
+          <HelpTip text="自动删除多少小时前的本地图片。" />
         </template>
-        <SettingsNumberInput :field="imageRetentionDaysField" />
+        <SettingsNumberInput :field="imageRetentionHoursField" />
       </FormField>
 
       <FormField label="日志自动清理">
         <template #label-extra>
-          <HelpTip text="自动删除多少天前的控制台调用日志，清理对象是 data/logs.jsonl。" />
+          <HelpTip text="自动删除多少小时前的控制台调用日志。" />
         </template>
-        <SettingsNumberInput :field="logRetentionDaysField" />
+        <SettingsNumberInput :field="logRetentionHoursField" />
       </FormField>
 
       <FormField label="图片轮询超时">
@@ -77,8 +77,8 @@ const props = defineProps<{
   settings: Settings
   fields: SettingsFields
   refreshAccountIntervalField: NumberSettingField
-  imageRetentionDaysField: NumberSettingField
-  logRetentionDaysField: NumberSettingField
+  imageRetentionHoursField: NumberSettingField
+  logRetentionHoursField: NumberSettingField
   imagePollTimeoutField: NumberSettingField
   imageStreamTimeoutField: NumberSettingField
   imageAccountConcurrencyField: NumberSettingField

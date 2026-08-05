@@ -142,21 +142,21 @@ def cleanup_image_thumbnails() -> int:
     return removed
 
 
-def _retention_days(value: int | float | str | None, fallback: int) -> int:
+def _retention_hours(value: int | float | str | None, fallback: int) -> int:
     try:
         return max(1, int(float(value or fallback)))
     except (TypeError, ValueError):
         return max(1, int(fallback))
 
 
-def _retention_cleanup_targets(retention_days: int) -> list[tuple[str, int]]:
-    days = _retention_days(retention_days, config.image_retention_days)
+def _retention_cleanup_targets(retention_hours: int) -> list[tuple[str, int]]:
+    hours = _retention_hours(retention_hours, config.image_retention_hours)
     raw_items = image_storage_service.list_items("", refresh_index=True, verify_existing=True)
     projection = gallery_page(
         raw_items,
         base_url="",
         tags_by_path={},
-        retention_days=days,
+        retention_hours=hours,
         limit=0,
         offset=0,
         media_type="all",
@@ -168,20 +168,20 @@ def _retention_cleanup_targets(retention_days: int) -> list[tuple[str, int]]:
     ]
 
 
-def preview_image_retention_cleanup(retention_days: int | None = None) -> dict[str, int | bool]:
-    days = _retention_days(retention_days, config.image_retention_days)
-    targets = _retention_cleanup_targets(days)
+def preview_image_retention_cleanup(retention_hours: int | None = None) -> dict[str, int | bool]:
+    hours = _retention_hours(retention_hours, config.image_retention_hours)
+    targets = _retention_cleanup_targets(hours)
     return {
         "removed": len(targets),
         "removed_size_bytes": sum(size for _, size in targets),
-        "retention_days": days,
+        "retention_hours": hours,
         "dry_run": True,
     }
 
 
-def cleanup_image_retention(retention_days: int | None = None) -> dict[str, int | bool]:
-    days = _retention_days(retention_days, config.image_retention_days)
-    targets = _retention_cleanup_targets(days)
+def cleanup_image_retention(retention_hours: int | None = None) -> dict[str, int | bool]:
+    hours = _retention_hours(retention_hours, config.image_retention_hours)
+    targets = _retention_cleanup_targets(hours)
     removed = 0
     removed_size_bytes = 0
     target_sizes = dict(targets)
@@ -204,19 +204,19 @@ def cleanup_image_retention(retention_days: int | None = None) -> dict[str, int 
     return {
         "removed": removed,
         "removed_size_bytes": removed_size_bytes,
-        "retention_days": days,
+        "retention_hours": hours,
         "dry_run": False,
     }
 
 
-def cleanup_expired_images(retention_days: int | None = None) -> dict[str, int]:
+def cleanup_expired_images(retention_hours: int | None = None) -> dict[str, int]:
     from services.retention_cleanup_service import retention_cleanup_coordinator
 
-    result = retention_cleanup_coordinator.run_images(retention_days)
+    result = retention_cleanup_coordinator.run_images(retention_hours)
     return {
         "removed": int(result["removed"]),
         "removed_size_bytes": int(result["removed_size_bytes"]),
-        "retention_days": int(result["retention_days"]),
+        "retention_hours": int(result["retention_hours"]),
     }
 
 
@@ -246,7 +246,7 @@ def list_images(
         raw_items,
         base_url=base_url,
         tags_by_path=load_tags(),
-        retention_days=config.image_retention_days,
+        retention_hours=config.image_retention_hours,
         limit=limit,
         offset=offset,
         media_type=wanted_type,

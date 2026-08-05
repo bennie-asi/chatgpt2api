@@ -54,11 +54,11 @@ def _storage(item: Mapping[str, object]) -> tuple[str, bool, bool]:
     return explicit, local, webdav
 
 
-def _expiry(item: Mapping[str, object], retention_days: int) -> tuple[bool, str | None, int | None]:
+def _expiry(item: Mapping[str, object], retention_hours: int) -> tuple[bool, str | None, int | None]:
     created = parse_to_beijing_naive(item.get("created_at"))
     if created is None:
         return False, None, None
-    expires = created + timedelta(days=retention_days)
+    expires = created + timedelta(hours=retention_hours)
     remaining = int((expires - beijing_now().replace(tzinfo=None)).total_seconds())
     return remaining <= 0, expires.strftime("%Y-%m-%d %H:%M:%S"), max(0, remaining)
 
@@ -85,13 +85,13 @@ def gallery_row(
     *,
     base_url: str,
     tags: list[str],
-    retention_days: int,
+    retention_hours: int,
 ) -> dict[str, Any]:
     path = _text(item.get("path") or item.get("rel") or item.get("name"))
     filename = _text(item.get("name") or item.get("filename")) or Path(path).name
     storage, local, webdav = _storage(item)
     expired, expires_at, expires_in_seconds = (
-        _expiry(item, retention_days) if local else (False, None, None)
+        _expiry(item, retention_hours) if local else (False, None, None)
     )
     return {
         "id": path,
@@ -147,7 +147,7 @@ def gallery_page(
     *,
     base_url: str,
     tags_by_path: Mapping[str, list[str]],
-    retention_days: int,
+    retention_hours: int,
     limit: int,
     offset: int,
     media_type: GalleryMediaFilter,
@@ -159,7 +159,7 @@ def gallery_page(
             item,
             base_url=base_url,
             tags=tags_by_path.get(_text(item.get("path") or item.get("rel")), []),
-            retention_days=retention_days,
+            retention_hours=retention_hours,
         )
         for item in raw_items
     ]
@@ -187,7 +187,7 @@ def gallery_page(
         "items": page_items,
         "total": total,
         "total_size_bytes": sum(int(item["size_bytes"]) for item in selected),
-        "retention_days": retention_days,
+        "retention_hours": retention_hours,
         "facets": {
             "media_types": media_facets,
             "tags": all_tags,
@@ -205,7 +205,7 @@ def gallery_cleanup_result(result: Mapping[str, object]) -> dict[str, Any]:
     return {
         "removed": removed,
         "removed_size_bytes": _non_negative_int(result.get("removed_size_bytes")),
-        "retention_days": max(1, _non_negative_int(result.get("retention_days"))),
+        "retention_hours": max(1, _non_negative_int(result.get("retention_hours"))),
         "message": (
             f"已清理 {removed} 个过期本地副本；"
             "仍有 WebDAV 副本的图库记录已保留。"

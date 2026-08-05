@@ -41,8 +41,8 @@ function formatBytes(value: unknown): string {
 
 function cleanupRequest(settings: Settings): RetentionCleanupRequest {
   return {
-    log_retention_days: settings.log_retention_days,
-    image_retention_days: settings.image_retention_days,
+    log_retention_hours: settings.log_retention_hours,
+    image_retention_hours: settings.image_retention_hours,
   }
 }
 
@@ -64,8 +64,8 @@ function hasAccountCleanupTargets(result: AccountCleanupResult): boolean {
 function retentionCleanupMessage(result: RetentionCleanupResult): string {
   return [
     `按当前保留策略检测到 ${result.total_removed} 项可清理数据，预计释放 ${formatBytes(result.total_size_bytes)}。`,
-    `日志：${result.logs.removed || 0} 条，保留 ${result.logs.retention_days} 天。`,
-    `图片：${result.images.removed || 0} 个，保留 ${result.images.retention_days} 天。`,
+    `日志：${result.logs.removed || 0} 条，保留 ${result.logs.retention_hours} 小时。`,
+    `图片：${result.images.removed || 0} 个，保留 ${result.images.retention_hours} 小时。`,
     '是否立即删除这些过期数据？',
   ].join('\n')
 }

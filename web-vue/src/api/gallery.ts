@@ -55,7 +55,7 @@ export interface GalleryResponse {
   items: GalleryRow[]
   total: number
   total_size_bytes: number
-  retention_days: number
+  retention_hours: number
   facets: {
     media_types: GalleryMediaFacets
     tags: string[]
@@ -96,7 +96,7 @@ export interface ImageCleanupTargetResult {
 export interface GalleryCleanupResult {
   removed: number
   removed_size_bytes: number
-  retention_days: number
+  retention_hours: number
   message: string
 }
 

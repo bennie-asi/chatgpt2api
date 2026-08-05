@@ -67,8 +67,8 @@ export interface Settings {
   proxy_runtime: SettingsProxyRuntimeSettings
   base_url: string
   refresh_account_interval_minute: number
-  image_retention_days: number
-  log_retention_days: number
+  image_retention_hours: number
+  log_retention_hours: number
   image_poll_timeout_secs: number
   image_stream_timeout_secs: number
   image_account_concurrency: number

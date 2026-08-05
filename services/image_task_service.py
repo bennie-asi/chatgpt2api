@@ -231,13 +231,13 @@ class ImageTaskService:
         *,
         generation_handler: Callable[[dict[str, Any]], dict[str, Any]] = openai_v1_image_generations.handle,
         edit_handler: Callable[[dict[str, Any]], dict[str, Any]] = openai_v1_image_edit.handle,
-        retention_days_getter: Callable[[], int] | None = None,
+        retention_hours_getter: Callable[[], int] | None = None,
         task_runner: BoundedTaskRunner | None = None,
     ):
         self.path = path
         self.generation_handler = generation_handler
         self.edit_handler = edit_handler
-        self.retention_days_getter = retention_days_getter or (lambda: config.image_retention_days)
+        self.retention_hours_getter = retention_hours_getter or (lambda: config.image_retention_hours)
         self.task_runner = task_runner or BoundedTaskRunner(
             name="image-task",
             max_workers=env_int("CHATGPT2API_IMAGE_TASK_WORKERS", 16),
@@ -978,10 +978,10 @@ class ImageTaskService:
 
     def _cleanup_locked(self) -> bool:
         try:
-            retention_days = max(1, int(self.retention_days_getter()))
+            retention_hours = max(1, int(self.retention_hours_getter()))
         except Exception:
-            retention_days = 30
-        cutoff = time.time() - retention_days * 86400
+            retention_hours = 24
+        cutoff = time.time() - retention_hours * 3600
         removed_keys = [
             key
             for key, task in self._tasks.items()

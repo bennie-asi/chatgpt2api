@@ -2,6 +2,8 @@
 
 ## 3.0.0 - 2026-08-05
 
++ [优化] 图片与调用日志自动清理统一使用小时保留周期，默认保留 24 小时；日志按精确时间滚动清理。
+
 + [新增] 账号、用户密钥、设置、调用日志和指标统一使用 Application Database，支持 SQLite 与 PostgreSQL 18。
 + [新增] 一键安装支持 SQLite、本地 PostgreSQL 18 容器和已有 PostgreSQL URL，并提供可叠加的 PostgreSQL Compose 配置。
 + [新增] 提供 Chat Completions、Responses、Messages、搜索、图片生成、图片编辑和 PPT / PSD 可编辑文件任务接口。

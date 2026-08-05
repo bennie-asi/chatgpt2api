@@ -356,11 +356,11 @@ def _legacy_basic_from_settings(value: object, settings: dict[str, object]) -> d
     source = dict(value) if isinstance(value, dict) else {}
     source["proxy"] = str(settings.get("proxy") or "").strip()
     source["base_url"] = str(settings.get("base_url") or "").strip().rstrip("/")
-    retention_days = normalize_integer_setting(
-        "image_retention_days",
-        settings.get("image_retention_days"),
+    retention_hours = normalize_integer_setting(
+        "image_retention_hours",
+        settings.get("image_retention_hours"),
     )
-    source["image_expire_hours"] = retention_days * 24
+    source["image_expire_hours"] = retention_hours
     return source
 
 
@@ -375,13 +375,13 @@ def _promote_legacy_basic_settings(data: dict[str, object]) -> dict[str, object]
         next_data["proxy"] = str(basic.get("proxy") or "").strip()
     if "base_url" not in next_data and "base_url" in basic:
         next_data["base_url"] = str(basic.get("base_url") or "").strip().rstrip("/")
-    if "image_retention_days" not in next_data and "image_expire_hours" in basic:
+    if "image_retention_hours" not in next_data and "image_expire_hours" in basic:
         try:
             legacy_hours = max(1, int(basic.get("image_expire_hours") or 24))
-            next_data["image_retention_days"] = (legacy_hours + 23) // 24
+            next_data["image_retention_hours"] = legacy_hours
         except (TypeError, ValueError):
-            next_data["image_retention_days"] = int(
-                numeric_setting_spec("image_retention_days").default
+            next_data["image_retention_hours"] = int(
+                numeric_setting_spec("image_retention_hours").default
             )
     return next_data
 
@@ -479,17 +479,17 @@ class ConfigStore:
         )
 
     @property
-    def image_retention_days(self) -> int:
+    def image_retention_hours(self) -> int:
         return normalize_integer_setting(
-            "image_retention_days",
-            self.data.get("image_retention_days"),
+            "image_retention_hours",
+            self.data.get("image_retention_hours"),
         )
 
     @property
-    def log_retention_days(self) -> int:
+    def log_retention_hours(self) -> int:
         return normalize_integer_setting(
-            "log_retention_days",
-            self.data.get("log_retention_days"),
+            "log_retention_hours",
+            self.data.get("log_retention_hours"),
         )
 
     @property
@@ -683,8 +683,8 @@ class ConfigStore:
             self.reload_if_changed()
             data = dict(self.data)
             data["refresh_account_interval_minute"] = self.refresh_account_interval_minute
-            data["image_retention_days"] = self.image_retention_days
-            data["log_retention_days"] = self.log_retention_days
+            data["image_retention_hours"] = self.image_retention_hours
+            data["log_retention_hours"] = self.log_retention_hours
             data["image_min_free_mb"] = self.image_min_free_mb
             data["image_poll_timeout_secs"] = self.image_poll_timeout_secs
             data["image_stream_timeout_secs"] = self.image_stream_timeout_secs
