@@ -29,6 +29,7 @@ export type GalleryFileCardSignatureInput = {
   sizeLabel: string
   dimensions: string
   timeRemaining: string
+  genboxPushEnabled: boolean
   genboxBusy: boolean
 }
 
@@ -74,10 +75,7 @@ export function storageLabel(file: GalleryFile): string {
 }
 
 export function genboxStatusLabel(file: GalleryFile): string {
-  if (file.genbox_push?.status === 'imported') return '已推送 GenBox'
-  if (file.genbox_push?.status === 'already-imported') return 'GenBox 已存在'
-  if (file.genbox_push?.status === 'duplicate-local') return 'GenBox 本地重复'
-  return ''
+  return file.genbox_push?.label || ''
 }
 
 export function galleryFileCardSignature(file: GalleryFile, input: GalleryFileCardSignatureInput): string {
@@ -93,6 +91,7 @@ export function galleryFileCardSignature(file: GalleryFile, input: GalleryFileCa
     input.sizeLabel,
     input.dimensions,
     input.timeRemaining,
+    input.genboxPushEnabled ? 1 : 0,
     input.genboxBusy ? 1 : 0,
     file.genbox_push ? `${file.genbox_push.status}:${file.genbox_push.updated_at}` : '',
     file.tags.map((tag) => boundedSignatureText(tag, 64)).join(','),

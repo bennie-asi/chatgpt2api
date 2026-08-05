@@ -16,6 +16,10 @@ from services.account_service import account_service
 from services.backup_service import backup_service
 from services.config import config
 from services.dashboard_metrics_service import dashboard_metrics_service
+from services.genbox_push_service import (
+    shutdown_genbox_push_service,
+    start_genbox_push_service,
+)
 from services.image_task_service import image_task_service
 from services.log_service import log_service
 from services.realtime_monitor_service import realtime_monitor_service
@@ -47,6 +51,7 @@ def create_app() -> FastAPI:
     @asynccontextmanager
     async def lifespan(_: FastAPI):
         _configure_threadpool()
+        start_genbox_push_service()
         image_task_service.start()
         try:
             cleanup_result = await run_in_threadpool(
@@ -83,6 +88,7 @@ def create_app() -> FastAPI:
             thread.join(timeout=1)
             await run_in_threadpool(cleanup_thread.join, RETENTION_SHUTDOWN_TIMEOUT_SECS)
             await run_in_threadpool(image_task_service.shutdown_cancel_pending_and_wait)
+            await run_in_threadpool(shutdown_genbox_push_service)
             try:
                 await run_in_threadpool(
                     dashboard_metrics_service.sync_from_log_service,

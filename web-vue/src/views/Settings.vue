@@ -112,7 +112,7 @@
         :mode="activeSettingsTab"
         :settings="localSettings"
         :fields="settingsFields"
-        :class="activeSettingsTab === 'canvas' ? 'w-full xl:w-1/2' : ''"
+        :genbox-timeout-seconds-field="genboxTimeoutSecondsField"
       />
 
       <SettingsUserKeysPanel
@@ -513,6 +513,15 @@ const backupRotationKeepField = useNumberSettingField(
   (value) => { if (localSettings.value) localSettings.value.backup.rotation_keep = value },
   { integer: true, metadata: () => fieldMetadata('backup.rotation_keep') },
 )
+const genboxTimeoutSecondsField = useNumberSettingField(
+  () => localSettings.value?.genbox_push.timeout_secs,
+  (value) => { if (localSettings.value) localSettings.value.genbox_push.timeout_secs = value },
+  {
+    integer: true,
+    metadata: () => fieldMetadata('genbox_push.timeout_secs'),
+    enabled: () => Boolean(localSettings.value?.genbox_push.enabled),
+  },
+)
 
 const numberSettingFields = [
   imageRetentionHoursField,
@@ -526,6 +535,7 @@ const numberSettingFields = [
   imageSettleSecondsField,
   backupIntervalMinutesField,
   backupRotationKeepField,
+  genboxTimeoutSecondsField,
 ]
 const hasInvalidNumberSettings = computed(() => (
   numberSettingFields.some((field) => !field.isValid.value)

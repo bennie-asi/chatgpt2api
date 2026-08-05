@@ -1,35 +1,60 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
 import hashlib
 import json
+from datetime import datetime, timezone
 from pathlib import Path
-import threading
 from typing import Any, Mapping
 from urllib.parse import urlsplit
 
 from curl_cffi import requests
 from fastapi import HTTPException
 
+from services.bounded_task_runner import BoundedTaskRunner, env_int
 from services.config import config
+from services.genbox_push_view import (
+    GENBOX_PUSH_TERMINAL_STATUSES,
+    genbox_push_state,
+)
 from services.image_storage_service import image_storage_service, normalize_image_relative_path
 from utils.log import logger
 
 
-_ALLOWED_STATUSES = {"imported", "already-imported", "duplicate-local"}
+class GenBoxPushError(RuntimeError):
+    def __init__(self, status_code: int, code: str, message: str) -> None:
+        super().__init__(message)
+        self.status_code = status_code
+        self.code = code
+        self.message = message
 
-_AUTO_PUSH_MAX_CONCURRENCY = 8
-_auto_push_slots = threading.BoundedSemaphore(_AUTO_PUSH_MAX_CONCURRENCY)
+
+_ERROR_SPECS = {
+    "genbox_not_configured": (409, "GenBox 尚未配置，请先在设置的外部服务中填写并启用"),
+    "genbox_invalid_receipt": (502, "GenBox 返回的数据无效"),
+    "genbox_probe_rejected": (502, "GenBox 连接验证未通过"),
+    "genbox_unavailable": (502, "GenBox 服务当前不可用"),
+    "genbox_rejected": (502, "GenBox 未接受该图片"),
+    "genbox_request_failed": (504, "GenBox 请求失败或超时"),
+}
 
 
-def _error(status_code: int, code: str) -> HTTPException:
-    return HTTPException(status_code=status_code, detail={"error": code})
+def _error(code: str) -> GenBoxPushError:
+    status_code, message = _ERROR_SPECS[code]
+    return GenBoxPushError(status_code, code, message)
+
+
+_auto_push_runner = BoundedTaskRunner(
+    name="genbox-auto-push",
+    max_workers=env_int("CHATGPT2API_GENBOX_PUSH_CONCURRENCY", 8),
+    queue_size=env_int("CHATGPT2API_GENBOX_PUSH_QUEUE_SIZE", 64),
+)
 
 
 def _json_object(response: Any) -> dict[str, Any]:
     content = bytes(response.content or b"")
     if len(content) > 1024 * 1024:
-        raise _error(502, "genbox_invalid_receipt")
+        raise _error("genbox_invalid_receipt")
+
     def object_pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
         value: dict[str, Any] = {}
         for key, item in pairs:
@@ -37,12 +62,13 @@ def _json_object(response: Any) -> dict[str, Any]:
                 raise ValueError("duplicate receipt key")
             value[key] = item
         return value
+
     try:
         value = json.loads(content.decode("utf-8"), object_pairs_hook=object_pairs)
     except (UnicodeDecodeError, ValueError) as exc:
-        raise _error(502, "genbox_invalid_receipt") from exc
+        raise _error("genbox_invalid_receipt") from exc
     if not isinstance(value, dict):
-        raise _error(502, "genbox_invalid_receipt")
+        raise _error("genbox_invalid_receipt")
     return value
 
 
@@ -84,32 +110,41 @@ def _auto_push_settings() -> dict[str, object] | None:
     return settings
 
 
-def _spawn_thread(target: Any, name: str) -> threading.Thread:
-    thread = threading.Thread(target=target, name=name, daemon=True)
-    thread.start()
-    return thread
+def start_genbox_push_service() -> None:
+    _auto_push_runner.start()
+
+
+def shutdown_genbox_push_service() -> None:
+    _auto_push_runner.shutdown_cancel_pending_and_wait()
 
 
 def _run_auto_push(rel: str) -> None:
-    def worker() -> None:
-        _auto_push_slots.acquire()
-        try:
-            push_gallery_image(rel)
-            logger.info({"event": "genbox_auto_push_succeeded", "path": rel})
-        except HTTPException as exc:
-            detail = exc.detail
-            code = detail.get("error") if isinstance(detail, dict) else ""
-            logger.warning({"event": "genbox_auto_push_failed", "path": rel, "code": code})
-        except Exception as exc:
-            logger.warning({
-                "event": "genbox_auto_push_failed",
-                "path": rel,
-                "error": type(exc).__name__,
-            })
-        finally:
-            _auto_push_slots.release()
+    try:
+        push_gallery_image(rel)
+        logger.info({"event": "genbox_auto_push_succeeded", "path": rel})
+    except GenBoxPushError as exc:
+        logger.warning({"event": "genbox_auto_push_failed", "path": rel, "code": exc.code})
+    except Exception as exc:
+        logger.warning({
+            "event": "genbox_auto_push_failed",
+            "path": rel,
+            "error": type(exc).__name__,
+        })
 
-    _spawn_thread(worker, name="genbox-auto-push")
+
+def _auto_push_cancelled(rel: str, _: BaseException) -> None:
+    logger.info({"event": "genbox_auto_push_cancelled", "path": rel})
+
+
+def _submit_auto_push(rel: str) -> bool:
+    reservation = _auto_push_runner.reserve()
+    if reservation is None:
+        return False
+    return reservation.commit(
+        _run_auto_push,
+        rel,
+        on_cancel=lambda exc: _auto_push_cancelled(rel, exc),
+    )
 
 
 def auto_push_gallery_urls(urls: list[str]) -> None:
@@ -124,11 +159,12 @@ def auto_push_gallery_urls(urls: list[str]) -> None:
                 continue
             seen.add(rel)
             state = image_storage_service.get_genbox_push_state(rel)
-            if state is not None and str(state.get("status")) in _ALLOWED_STATUSES:
+            if state is not None and str(state.get("status")) in GENBOX_PUSH_TERMINAL_STATUSES:
                 continue
             rels.append(rel)
         for rel in rels:
-            _run_auto_push(rel)
+            if not _submit_auto_push(rel):
+                logger.warning({"event": "genbox_auto_push_queue_full", "path": rel})
     except Exception as exc:
         logger.warning({
             "event": "genbox_auto_push_dispatch_failed",
@@ -140,7 +176,7 @@ def _settings() -> dict[str, object]:
     settings = config.get_genbox_push_settings()
     required = ("base_url", "source_id", "push_key")
     if not settings.get("enabled") or any(not str(settings.get(key) or "").strip() for key in required):
-        raise _error(409, "genbox_not_configured")
+        raise _error("genbox_not_configured")
     return settings
 
 
@@ -152,7 +188,7 @@ def _validate_probe(value: Mapping[str, Any], source_id: str, size: int) -> None
         or not isinstance(value.get("max_image_bytes"), int)
         or value["max_image_bytes"] < size
     ):
-        raise _error(502, "genbox_probe_rejected")
+        raise _error("genbox_probe_rejected")
 
 
 def _validate_receipt(value: Mapping[str, Any], source_id: str, sha256: str) -> str:
@@ -162,9 +198,9 @@ def _validate_receipt(value: Mapping[str, Any], source_id: str, sha256: str) -> 
         or value.get("contract_version") != "v1"
         or value.get("source_id") != source_id
         or value.get("sha256") != sha256
-        or status not in _ALLOWED_STATUSES
+        or status not in GENBOX_PUSH_TERMINAL_STATUSES
     ):
-        raise _error(502, "genbox_invalid_receipt")
+        raise _error("genbox_invalid_receipt")
     return str(status)
 
 
@@ -188,7 +224,7 @@ def push_gallery_image(relative_path: str) -> dict[str, object]:
                 allow_redirects=False,
             )
             if not 200 <= int(probe.status_code) < 300:
-                raise _error(502, "genbox_unavailable")
+                raise _error("genbox_unavailable")
             _validate_probe(_json_object(probe), str(settings["source_id"]), len(payload))
             response = session.post(
                 f"{str(settings['base_url']).rstrip('/')}/api/sync/push",
@@ -198,15 +234,18 @@ def push_gallery_image(relative_path: str) -> dict[str, object]:
                 timeout=timeout,
                 allow_redirects=False,
             )
-        except HTTPException:
+        except GenBoxPushError:
             raise
         except Exception as exc:
-            raise _error(504, "genbox_request_failed") from exc
+            raise _error("genbox_request_failed") from exc
         if not 200 <= int(response.status_code) < 300:
-            raise _error(502, "genbox_rejected")
+            raise _error("genbox_rejected")
         status = _validate_receipt(_json_object(response), str(settings["source_id"]), sha256)
     finally:
         session.close()
     updated_at = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
     state = image_storage_service.record_genbox_push(rel, status=status, sha256=sha256, updated_at=updated_at)
-    return {"path": rel, **state, "source_retained": True}
+    projected = genbox_push_state(state)
+    if projected is None:
+        raise RuntimeError("stored GenBox push state is invalid")
+    return {"path": rel, **projected, "source_retained": True}

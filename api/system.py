@@ -47,7 +47,7 @@ from services.gallery_view import (
     gallery_cleanup_target_result,
     gallery_compress_result,
 )
-from services.genbox_push_service import push_gallery_image
+from services.genbox_push_service import GenBoxPushError, push_gallery_image
 from services.image_service import (
     cleanup_expired_images,
     compress_images,
@@ -303,7 +303,13 @@ def create_router(app_version: str) -> APIRouter:
         authorization: str | None = Header(default=None),
     ):
         require_admin(authorization)
-        return await run_in_threadpool(push_gallery_image, body.path)
+        try:
+            return await run_in_threadpool(push_gallery_image, body.path)
+        except GenBoxPushError as exc:
+            raise HTTPException(
+                status_code=exc.status_code,
+                detail={"code": exc.code, "message": exc.message},
+            ) from exc
 
     @router.get("/api/logs", response_model=CallSummaryPage)
     async def get_logs(

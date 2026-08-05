@@ -15,6 +15,7 @@ class GalleryGenBoxPushState(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     status: GenBoxPushStatus
+    label: str = Field(min_length=1)
     sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     updated_at: str
 
@@ -65,6 +66,12 @@ class GalleryFacets(BaseModel):
     tags: list[str] = Field(default_factory=list)
 
 
+class GalleryCapabilities(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    genbox_push: bool = False
+
+
 class GalleryPage(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -74,6 +81,7 @@ class GalleryPage(BaseModel):
     total: int = Field(ge=0)
     total_size_bytes: int = Field(ge=0)
     retention_hours: int = Field(ge=1)
+    capabilities: GalleryCapabilities
     facets: GalleryFacets
     media_type: GalleryMediaFilter
     page: int = Field(ge=1)

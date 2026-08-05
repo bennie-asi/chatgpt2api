@@ -8,6 +8,7 @@ export type GalleryGenBoxPushStatus = 'imported' | 'already-imported' | 'duplica
 
 export interface GalleryGenBoxPushState {
   status: GalleryGenBoxPushStatus
+  label: string
   sha256: string
   updated_at: string
 }
@@ -56,6 +57,9 @@ export interface GalleryResponse {
   total: number
   total_size_bytes: number
   retention_hours: number
+  capabilities: {
+    genbox_push: boolean
+  }
   facets: {
     media_types: GalleryMediaFacets
     tags: string[]

@@ -2,6 +2,7 @@ import { ref, type Ref } from 'vue'
 
 import { galleryApi, type GalleryFile, type ImageStorageStats } from '@/api/gallery'
 import { saveBlob } from '@/lib/downloads'
+import { errorMessage } from '@/lib/errorMessage'
 import { formatMb } from '@/views/gallery/galleryView'
 import type { PageRuntime } from '@/composables/usePageRuntime'
 import { usePageQuery } from '@/composables/usePageQuery'
@@ -258,26 +259,15 @@ export function useGalleryOperationsRuntime(options: GalleryOperationsRuntimeOpt
     }
   }
 
-  function genboxErrorMessage(error: any): string {
-    const code = error?.data?.error
-    if (code === 'genbox_not_configured') return 'GenBox 尚未配置'
-    if (code === 'genbox_request_failed') return 'GenBox 请求失败或超时'
-    if (code) return 'GenBox 未接受该图片'
-    return error?.message || '推送到 GenBox 失败'
-  }
-
   async function handleGenBoxPush(file: GalleryFile) {
     if (genboxPushBusyPath.value) return
     genboxPushBusyPath.value = file.path
     try {
       const result = await galleryApi.pushToGenBox(file.path)
-      options.toast.success(
-        result.status === 'imported' ? '已推送到 GenBox' : '图片已存在于 GenBox',
-        'Push 成功',
-      )
+      options.toast.success(result.label, 'Push 成功')
       await options.loadGallery()
-    } catch (error: any) {
-      options.toast.error(genboxErrorMessage(error), 'Push 失败')
+    } catch (error) {
+      options.toast.error(errorMessage(error, '推送到 GenBox 失败'), 'Push 失败')
     } finally {
       genboxPushBusyPath.value = null
     }

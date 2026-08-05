@@ -40,6 +40,7 @@
           <Icon icon="lucide:download" />
         </button>
         <button
+          v-if="genboxPushEnabled"
           class="overlay-btn"
           :class="{ 'is-busy': genboxBusy }"
           :disabled="genboxBusy"
@@ -104,6 +105,7 @@ const props = defineProps<{
   sizeLabel: string
   dimensions: string
   timeRemaining: string
+  genboxPushEnabled: boolean
   genboxBusy: boolean
   genboxStatusLabel: string
 }>()

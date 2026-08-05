@@ -128,6 +128,7 @@
             :size-label="formatSize(file.size_bytes)"
             :dimensions="formatDimensions(file)"
             :time-remaining="galleryCardTimeRemaining(file)"
+            :genbox-push-enabled="genboxPushEnabled"
             :genbox-busy="genboxPushBusyPath === file.path"
             :genbox-status-label="genboxStatusLabel(file)"
             @preview="openPreview"
@@ -361,6 +362,7 @@ const endDate = galleryQueryRuntime.endDate
 const pageSize = galleryQueryRuntime.pageSize
 const counts = galleryQueryRuntime.counts
 const allTags = galleryQueryRuntime.allTags
+const genboxPushEnabled = galleryQueryRuntime.genboxPushEnabled
 const tagOptions = galleryQueryRuntime.tagOptions
 const currentPage = galleryQueryRuntime.currentPage
 const totalItems = galleryQueryRuntime.totalItems
@@ -467,6 +469,7 @@ function galleryCardSignature(file: GalleryFile) {
     sizeLabel: formatSize(file.size_bytes),
     dimensions: formatDimensions(file),
     timeRemaining: galleryCardTimeRemaining(file),
+    genboxPushEnabled: genboxPushEnabled.value,
     genboxBusy: genboxPushBusyPath.value === file.path,
   })
 }

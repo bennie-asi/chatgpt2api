@@ -242,6 +242,7 @@ def list_images(
     wanted_type = str(media_type or "all").strip().lower()
     if wanted_type not in {"all", "image"}:
         wanted_type = "all"
+    genbox_push_settings = config.get_genbox_push_settings()
     return gallery_page(
         raw_items,
         base_url=base_url,
@@ -250,6 +251,7 @@ def list_images(
         limit=limit,
         offset=offset,
         media_type=wanted_type,
+        genbox_push_enabled=bool(genbox_push_settings.get("enabled")),
         tag=tag,
         search=search,
     )

@@ -1,31 +1,96 @@
 <template>
   <div class="space-y-4">
-    <FormSection
-      v-if="mode === 'canvas'"
-      title="无限画布"
-      subtitle="开启后顶部导航会显示画布入口，并自动带上当前接口地址和密钥。"
-    >
-      <div class="settings-check-grid settings-check-grid--single">
-        <div class="settings-check-item">
-          <div class="settings-check-control">
-            <Checkbox
-              v-model="settings.third_party_apps.infinite_canvas.enabled"
-              :disabled="fieldReadOnly('third_party_apps.infinite_canvas.enabled')"
-            >
-              启用无限画布入口
-            </Checkbox>
+    <template v-if="mode === 'canvas'">
+      <div class="grid items-start gap-4 lg:grid-cols-2">
+        <FormSection
+          title="无限画布"
+          subtitle="开启后顶部导航会显示画布入口，并自动带上当前接口地址和密钥。"
+        >
+          <div class="settings-check-grid settings-check-grid--single">
+            <div class="settings-check-item">
+              <div class="settings-check-control">
+                <Checkbox
+                  v-model="settings.third_party_apps.infinite_canvas.enabled"
+                  :disabled="fieldReadOnly('third_party_apps.infinite_canvas.enabled')"
+                >
+                  启用无限画布入口
+                </Checkbox>
+              </div>
+            </div>
           </div>
-        </div>
+          <FormField label="无限画布地址">
+            <Input
+              v-model.trim="settings.third_party_apps.infinite_canvas.url"
+              block
+              :disabled="fieldReadOnly('third_party_apps.infinite_canvas.url')"
+              placeholder="https://canvas.best"
+            />
+          </FormField>
+        </FormSection>
+
+        <FormSection
+          title="GenBox 图片推送"
+          subtitle="配置图库手动 Push，以及 Studio 生成成功后的自动推送。"
+        >
+          <div class="settings-check-grid">
+            <div class="settings-check-item">
+              <div class="settings-check-control">
+                <Checkbox
+                  v-model="settings.genbox_push.enabled"
+                  :disabled="fieldReadOnly('genbox_push.enabled')"
+                >
+                  启用 GenBox Push
+                </Checkbox>
+              </div>
+            </div>
+            <div class="settings-check-item">
+              <div class="settings-check-control">
+                <Checkbox
+                  v-model="settings.genbox_push.auto_push_after_studio"
+                  :disabled="!settings.genbox_push.enabled || fieldReadOnly('genbox_push.auto_push_after_studio')"
+                >
+                  Studio 成功后自动推送
+                </Checkbox>
+              </div>
+            </div>
+          </div>
+
+          <FormField label="GenBox 地址">
+            <Input
+              v-model.trim="settings.genbox_push.base_url"
+              block
+              :disabled="fieldReadOnly('genbox_push.base_url')"
+              placeholder="https://genbox.example.com"
+            />
+          </FormField>
+
+          <div class="grid grid-cols-1 gap-2.5 md:grid-cols-2">
+            <FormField label="来源 ID">
+              <Input
+                v-model.trim="settings.genbox_push.source_id"
+                block
+                :disabled="fieldReadOnly('genbox_push.source_id')"
+                placeholder="chatgpt2api"
+              />
+            </FormField>
+
+            <FormField label="请求超时（秒）">
+              <SettingsNumberInput :field="genboxTimeoutSecondsField" />
+            </FormField>
+          </div>
+
+          <FormField label="Push Key">
+            <Input
+              v-model="settings.genbox_push.push_key"
+              type="password"
+              block
+              :disabled="fieldReadOnly('genbox_push.push_key')"
+              :placeholder="settings.genbox_push.has_push_key ? '已配置，留空不修改' : '请输入 GenBox Push Key'"
+            />
+          </FormField>
+        </FormSection>
       </div>
-      <FormField label="无限画布地址">
-        <Input
-          v-model.trim="settings.third_party_apps.infinite_canvas.url"
-          block
-          :disabled="fieldReadOnly('third_party_apps.infinite_canvas.url')"
-          placeholder="https://canvas.best"
-        />
-      </FormField>
-    </FormSection>
+    </template>
 
     <template v-else>
       <FormSection title="接口接入" subtitle="第三方应用按 OpenAI 兼容接口接入，使用同一套 Bearer 鉴权。">
@@ -72,6 +137,8 @@ import { Checkbox, FormField, FormSection, Input } from 'nanocat-ui'
 import SurfaceBox from '@/components/ai/SurfaceBox.vue'
 import { getAuthToken } from '@/api/client'
 import type { Settings } from '@/types/api'
+import SettingsNumberInput from '@/views/settings/SettingsNumberInput.vue'
+import type { NumberSettingField } from '@/views/settings/useNumberSettingField'
 import {
   buildApiDocItems,
   settingsFieldReadOnly,
@@ -82,6 +149,7 @@ const props = defineProps<{
   mode: 'api-docs' | 'canvas'
   settings: Settings
   fields: SettingsFields
+  genboxTimeoutSecondsField: NumberSettingField
 }>()
 
 const fieldReadOnly = (path: string) => settingsFieldReadOnly(props.fields, path)

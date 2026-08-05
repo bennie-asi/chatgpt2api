@@ -191,7 +191,10 @@ def _normalize_genbox_base_url(value: object) -> str:
     raw = str(value or "").strip()
     if not raw:
         return ""
-    parsed = urlsplit(raw)
+    try:
+        parsed = urlsplit(raw)
+    except ValueError:
+        return ""
     if parsed.scheme not in {"http", "https"} or not parsed.netloc:
         return ""
     if parsed.username or parsed.password or parsed.query or parsed.fragment:
@@ -399,11 +402,11 @@ def _validate_genbox_push_settings(settings: dict[str, object]) -> None:
     if not _normalize_bool(settings.get("enabled"), False):
         return
     if not _normalize_genbox_base_url(settings.get("base_url")):
-        raise ValueError("GenBox Push requires a valid HTTP(S) base URL")
+        raise ValueError("启用 GenBox Push 后必须填写有效的 HTTP(S) 地址")
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}", str(settings.get("source_id") or "").strip()):
-        raise ValueError("GenBox Push source ID is invalid")
+        raise ValueError("GenBox 来源 ID 格式无效")
     if not str(settings.get("push_key") or "").strip():
-        raise ValueError("GenBox Push requires a Push Key")
+        raise ValueError("启用 GenBox Push 后必须填写 Push Key")
 
 
 def _normalize_auth_key(value: object) -> str:
