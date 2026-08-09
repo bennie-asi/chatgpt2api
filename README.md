@@ -167,6 +167,91 @@ curl http://localhost:3000/v1/chat/completions \
 </details>
 
 <details>
+<summary>Chat Completions Function Calling 示例</summary>
+
+`/v1/chat/completions` 支持 `type: "function"` 工具。服务只返回调用意图，工具始终由调用方执行；执行完成后，调用方把原 assistant 消息和 `role: "tool"` 结果一起发起下一轮请求。
+
+第一轮请求：
+
+```json
+{
+  "model": "gpt-5",
+  "messages": [{"role": "user", "content": "上海现在天气如何？"}],
+  "tools": [{
+    "type": "function",
+    "function": {
+      "name": "get_weather",
+      "description": "查询城市天气",
+      "parameters": {
+        "type": "object",
+        "properties": {"city": {"type": "string"}},
+        "required": ["city"]
+      }
+    }
+  }],
+  "tool_choice": "auto",
+  "parallel_tool_calls": true
+}
+```
+
+模型需要工具时返回：
+
+```json
+{
+  "choices": [{
+    "message": {
+      "role": "assistant",
+      "content": null,
+      "tool_calls": [{
+        "id": "call_abc123",
+        "type": "function",
+        "function": {
+          "name": "get_weather",
+          "arguments": "{\"city\":\"上海\"}"
+        }
+      }]
+    },
+    "finish_reason": "tool_calls"
+  }]
+}
+```
+
+调用方执行 `get_weather` 后，原样保留 `tool_call_id` 并继续对话：
+
+```json
+{
+  "model": "gpt-5",
+  "messages": [
+    {"role": "user", "content": "上海现在天气如何？"},
+    {
+      "role": "assistant",
+      "content": null,
+      "tool_calls": [{
+        "id": "call_abc123",
+        "type": "function",
+        "function": {"name": "get_weather", "arguments": "{\"city\":\"上海\"}"}
+      }]
+    },
+    {"role": "tool", "tool_call_id": "call_abc123", "content": "晴，28°C"}
+  ],
+  "tools": [{
+    "type": "function",
+    "function": {"name": "get_weather", "parameters": {"type": "object"}}
+  }]
+}
+```
+
+兼容边界：
+
+- `"tool_choice"` 支持 `auto`、`none`、`required` 和指定函数；`"parallel_tool_calls": false` 时最多返回一个调用。
+- 单个请求最多声明 128 个 function 工具，函数名最长 64 字符；工具定义和模型输出信封分别限制为 256 KiB。
+- 流式 function 请求会先整轮缓冲上游文本，再发送完整的 `delta.tool_calls` 和 `finish_reason: "tool_calls"`；不会逐 token 暴露内部协议。
+- 工具由调用方执行，服务不注册工具、没有副作用授权，也不校验业务参数 schema。`required`、指定函数与 `strict` 在文本后端上属于 best-effort 约束。
+- 模型输出解析失败时安全退化为普通 assistant 文本，不返回协议 5xx，也不会公开内部 nonce 或信封。
+
+</details>
+
+<details>
 <summary>图片生成示例</summary>
 
 ```bash

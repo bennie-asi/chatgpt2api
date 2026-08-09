@@ -167,6 +167,91 @@ curl http://localhost:3000/v1/chat/completions \
 </details>
 
 <details>
+<summary>Chat Completions Function Calling example</summary>
+
+`/v1/chat/completions` accepts `type: "function"` tools. The service returns call intent only; the caller executes every function and then sends the original assistant message together with a `role: "tool"` result in the next request.
+
+First request:
+
+```json
+{
+  "model": "gpt-5",
+  "messages": [{"role": "user", "content": "What is the weather in Shanghai?"}],
+  "tools": [{
+    "type": "function",
+    "function": {
+      "name": "get_weather",
+      "description": "Get weather for a city",
+      "parameters": {
+        "type": "object",
+        "properties": {"city": {"type": "string"}},
+        "required": ["city"]
+      }
+    }
+  }],
+  "tool_choice": "auto",
+  "parallel_tool_calls": true
+}
+```
+
+When a tool is needed, the model-facing response is projected as:
+
+```json
+{
+  "choices": [{
+    "message": {
+      "role": "assistant",
+      "content": null,
+      "tool_calls": [{
+        "id": "call_abc123",
+        "type": "function",
+        "function": {
+          "name": "get_weather",
+          "arguments": "{\"city\":\"Shanghai\"}"
+        }
+      }]
+    },
+    "finish_reason": "tool_calls"
+  }]
+}
+```
+
+After the caller executes `get_weather`, it preserves the `tool_call_id` and continues the conversation:
+
+```json
+{
+  "model": "gpt-5",
+  "messages": [
+    {"role": "user", "content": "What is the weather in Shanghai?"},
+    {
+      "role": "assistant",
+      "content": null,
+      "tool_calls": [{
+        "id": "call_abc123",
+        "type": "function",
+        "function": {"name": "get_weather", "arguments": "{\"city\":\"Shanghai\"}"}
+      }]
+    },
+    {"role": "tool", "tool_call_id": "call_abc123", "content": "Sunny, 28°C"}
+  ],
+  "tools": [{
+    "type": "function",
+    "function": {"name": "get_weather", "parameters": {"type": "object"}}
+  }]
+}
+```
+
+Compatibility boundaries:
+
+- `"tool_choice"` accepts `auto`, `none`, `required`, or a named function. With `"parallel_tool_calls": false`, at most one call is returned.
+- A request may declare up to 128 function tools; function names are limited to 64 characters. Tool definitions and model output envelopes are each limited to 256 KiB.
+- A streaming function request buffers the complete upstream turn before emitting one complete `delta.tool_calls` value and `finish_reason: "tool_calls"`; internal protocol tokens are never streamed.
+- The caller executes tools. The service does not register tools, authorize side effects, or enforce business argument schemas. `required`, named functions, and `strict` are best-effort constraints on the text backend.
+- On parse failure, the response safely falls back to ordinary assistant text without a protocol 5xx and without exposing the internal nonce or envelope.
+
+</details>
+
+<details>
 <summary>Image generation example</summary>
 
 ```bash

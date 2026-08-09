@@ -16,6 +16,7 @@ from services.editable_file_task_service import (
     editable_file_task_service,
 )
 from services.log_service import LoggedCall
+from services.protocol.openai_tool_calls import redact_tool_results_for_log
 from services.protocol import (
     anthropic_v1_messages,
     openai_v1_chat_complete,
@@ -47,6 +48,9 @@ class ChatCompletionRequest(BaseModel):
     stream: bool | None = None
     modalities: list[str] | None = None
     messages: list[dict[str, object]] | None = None
+    tools: list[dict[str, object]] | None = None
+    tool_choice: str | dict[str, object] | None = None
+    parallel_tool_calls: bool | None = None
 
 
 class ResponseCreateRequest(BaseModel):
@@ -170,7 +174,11 @@ def create_router() -> APIRouter:
         payload = body.model_dump(mode="python")
         payload["base_url"] = resolve_image_base_url(request)
         model = str(payload.get("model") or "auto")
-        request_preview = request_text(payload.get("prompt"), payload.get("messages"))
+        filter_preview = request_text(payload.get("prompt"), payload.get("messages"))
+        request_preview = request_text(
+            payload.get("prompt"),
+            redact_tool_results_for_log(payload.get("messages")),
+        )
         image_chat = is_image_chat_request(payload)
         call = LoggedCall(
             identity,
@@ -183,7 +191,7 @@ def create_router() -> APIRouter:
         )
         attach_trace_headers(call, request)
         call.attach_trace_metadata(payload)
-        await filter_or_log(call, request_preview)
+        await filter_or_log(call, filter_preview)
         return await call.run(openai_v1_chat_complete.handle, payload)
 
     @router.post("/v1/responses")

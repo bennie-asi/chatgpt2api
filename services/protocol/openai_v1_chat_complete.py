@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import time
 import uuid
 from typing import Any, Iterable, Iterator
@@ -22,6 +23,14 @@ from services.protocol.conversation import (
     text_backend,
 )
 from services.protocol.reasoning import thinking_effort_from_body
+from services.protocol.openai_tool_calls import (
+    ToolCallPlan,
+    ToolOutput,
+    ToolRequestError,
+    adapt_tool_messages,
+    build_tool_plan,
+    parse_tool_output,
+)
 from services.protocol.web_search_tool import (
     WEB_SEARCH_TOOL_TYPES,
     has_unsupported_tools,
@@ -151,6 +160,53 @@ def stream_text_chat_completion(
     yield _with_log_metadata(completion_chunk(model, {}, "stop", completion_id, created), _backend_account_email(backend))
 
 
+def stream_tool_chat_completion(
+    backend: object,
+    messages: list[dict[str, Any]],
+    model: str,
+    plan: ToolCallPlan,
+    thinking_effort: str = "",
+) -> Iterator[dict[str, Any]]:
+    completion_id = f"chatcmpl-{uuid.uuid4().hex}"
+    created = int(time.time())
+    request = ConversationRequest(model=model, messages=messages, thinking_effort=thinking_effort)
+    raw_text = "".join(stream_text_deltas(backend, request))
+    output = parse_tool_output(raw_text, plan)
+    account_email = _backend_account_email(backend)
+    if output.calls:
+        tool_calls = [
+            {"index": index, **call}
+            for index, call in enumerate(_public_tool_calls(output))
+        ]
+        yield _with_log_metadata(
+            completion_chunk(
+                model,
+                {"role": "assistant", "content": None, "tool_calls": tool_calls},
+                None,
+                completion_id,
+                created,
+            ),
+            account_email,
+        )
+        finish_reason = "tool_calls"
+    else:
+        yield _with_log_metadata(
+            completion_chunk(
+                model,
+                {"role": "assistant", "content": output.visible_text},
+                None,
+                completion_id,
+                created,
+            ),
+            account_email,
+        )
+        finish_reason = "stop"
+    yield _with_log_metadata(
+        completion_chunk(model, {}, finish_reason, completion_id, created),
+        account_email,
+    )
+
+
 def collect_chat_content(chunks: Iterable[dict[str, Any]]) -> str:
     parts: list[str] = []
     for chunk in chunks:
@@ -191,6 +247,15 @@ def text_chat_parts(body: dict[str, Any]) -> tuple[str, list[dict[str, Any]]]:
     messages = normalize_text_messages(normalize_messages(chat_messages_from_body(body)))
     if has_unsupported_tools(body, WEB_SEARCH_TOOL_TYPES):
         messages.insert(0, {"role": "system", "content": TOOL_UNAVAILABLE_SYSTEM_MESSAGE})
+    return model, messages
+
+
+def tool_text_chat_parts(
+    body: dict[str, Any],
+    plan: ToolCallPlan,
+) -> tuple[str, list[dict[str, Any]]]:
+    model = str(body.get("model") or "auto").strip() or "auto"
+    messages = normalize_messages(adapt_tool_messages(chat_messages_from_body(body), plan))
     return model, messages
 
 
@@ -336,10 +401,81 @@ def text_completion_response(model: str, messages: list[dict[str, Any]], thinkin
     return _with_log_metadata(response, _backend_account_email(backend))
 
 
+def _public_tool_calls(output: ToolOutput) -> list[dict[str, Any]]:
+    return [
+        {
+            "id": f"call_{uuid.uuid4().hex}",
+            "type": "function",
+            "function": {
+                "name": call.name,
+                "arguments": json.dumps(
+                    call.arguments,
+                    allow_nan=False,
+                    ensure_ascii=False,
+                    separators=(",", ":"),
+                    sort_keys=True,
+                ),
+            },
+        }
+        for call in output.calls
+    ]
+
+
+def tool_completion_response(
+    model: str,
+    raw_text: str,
+    output: ToolOutput,
+    messages: list[dict[str, Any]],
+) -> dict[str, Any]:
+    response = completion_response(model, raw_text, messages=messages)
+    choice = response["choices"][0]
+    if output.calls:
+        choice["message"] = {
+            "role": "assistant",
+            "content": None,
+            "tool_calls": _public_tool_calls(output),
+        }
+        choice["finish_reason"] = "tool_calls"
+    else:
+        choice["message"] = {"role": "assistant", "content": output.visible_text}
+        choice["finish_reason"] = "stop"
+    return response
+
+
+def text_tool_completion_response(
+    model: str,
+    messages: list[dict[str, Any]],
+    thinking_effort: str,
+    plan: ToolCallPlan,
+) -> dict[str, Any]:
+    backend = text_backend()
+    raw_text = collect_text(
+        backend,
+        ConversationRequest(model=model, messages=messages, thinking_effort=thinking_effort),
+    )
+    response = tool_completion_response(model, raw_text, parse_tool_output(raw_text, plan), messages)
+    return _with_log_metadata(response, _backend_account_email(backend))
+
+
+def _tool_plan_or_400(body: dict[str, Any]) -> ToolCallPlan | None:
+    try:
+        return build_tool_plan(body)
+    except ToolRequestError as exc:
+        raise HTTPException(status_code=400, detail={"error": str(exc)}) from exc
+
+
 def handle(body: dict[str, Any]) -> dict[str, Any] | Iterator[dict[str, Any]]:
     if body.get("stream"):
         if is_image_chat_request(body):
             return image_chat_events(body)
+        plan = _tool_plan_or_400(body)
+        if plan is not None:
+            try:
+                model, messages = tool_text_chat_parts(body, plan)
+            except ToolRequestError as exc:
+                raise HTTPException(status_code=400, detail={"error": str(exc)}) from exc
+            thinking_effort = thinking_effort_from_body(body)
+            return stream_tool_chat_completion(text_backend(), messages, model, plan, thinking_effort)
         model, messages = text_chat_parts(body)
         if is_web_search_chat_request(body) and not has_unsupported_tools(body, WEB_SEARCH_TOOL_TYPES):
             return stream_web_search_chat_completion(messages, model)
@@ -351,6 +487,14 @@ def handle(body: dict[str, Any]) -> dict[str, Any] | Iterator[dict[str, Any]]:
         )
     if is_image_chat_request(body):
         return image_chat_response(body)
+    plan = _tool_plan_or_400(body)
+    if plan is not None:
+        try:
+            model, messages = tool_text_chat_parts(body, plan)
+        except ToolRequestError as exc:
+            raise HTTPException(status_code=400, detail={"error": str(exc)}) from exc
+        thinking_effort = thinking_effort_from_body(body)
+        return text_tool_completion_response(model, messages, thinking_effort, plan)
     model, messages = text_chat_parts(body)
     if is_web_search_chat_request(body) and not has_unsupported_tools(body, WEB_SEARCH_TOOL_TYPES):
         return web_search_chat_response(messages, model)

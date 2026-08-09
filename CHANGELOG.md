@@ -2,6 +2,9 @@
 
 ## Unreleased
 
++ [新增] `/v1/chat/completions` 支持 OpenAI 兼容 Function Calling：接收 function `tools`、`tool_choice`、`parallel_tool_calls` 与工具历史，返回标准非流式 `message.tool_calls` 或流式 `delta.tool_calls`，由调用方执行工具并回传结果。
++ [兼容] Function Calling 流式请求采用整轮缓冲；无效工具信封安全退化为普通文本。`required`、指定函数和 `strict` 在 ChatGPT Web 文本后端上属于 best-effort 约束。
+
 ## 3.1.1 - 2026-08-08
 
 + [修复] GenBox 推送仅接受已登记在 Gallery 索引中的有效图片，推送时携带生成元数据并保留源图片；未登记、外部来源或无效内容不会进入推送队列。
