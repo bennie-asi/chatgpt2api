@@ -233,6 +233,10 @@ def _adapter_system_content(plan: ToolCallPlan) -> str:
     )
     return "\n".join([
         "OpenAI Function Calling compatibility adapter.",
+        "These functions run in the caller's environment, not in ChatGPT's hosted environment. "
+        "Return the envelope as your final assistant text; the caller executes it and supplies "
+        "a tool_result on the next turn. Do not use hosted tools to access caller files, and "
+        "do not claim a listed function is unavailable because it is absent from your hosted tools.",
         safety,
         requirement,
         parallel,
