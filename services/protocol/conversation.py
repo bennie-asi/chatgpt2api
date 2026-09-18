@@ -1005,10 +1005,12 @@ def iter_conversation_payloads(
         history_messages: list[str] | None = None,
         *,
         classify_terminal_text_as_image_failure: bool = True,
+        include_upstream_tool_text: bool = True,
 ) -> Iterator[dict[str, Any]]:
     state = ConversationState()
     history_messages = history_messages or []
     history_index = 0
+    text_message_visible = True
     for payload in payloads:
         # print(f"[upstream_sse] {payload}", flush=True)
         if not payload:
@@ -1025,7 +1027,21 @@ def iter_conversation_payloads(
         if not isinstance(event, dict):
             yield conversation_base_event("conversation.event", state, raw=event)
             continue
-        next_raw_text = assistant_raw_text(event, state.raw_text, history_text)
+        if not include_upstream_tool_text:
+            for candidate in (event, event.get("v")):
+                message = candidate.get("message") if isinstance(candidate, dict) else None
+                if not isinstance(message, dict):
+                    continue
+                # Patches inherit the visibility of their preceding message.
+                # Hosted tools are not client function calls or assistant prose.
+                role = str((message.get("author") or {}).get("role") or "")
+                recipient = str(message.get("recipient") or "all")
+                text_message_visible = role == "assistant" and recipient == "all"
+                break
+        next_raw_text = (
+            assistant_raw_text(event, state.raw_text, history_text)
+            if text_message_visible else state.raw_text
+        )
         update_conversation_state(
             state,
             payload,
@@ -1076,6 +1092,7 @@ def conversation_events(
         history_text,
         history_messages,
         classify_terminal_text_as_image_failure=image_model,
+        include_upstream_tool_text=image_model,
     )
 
 

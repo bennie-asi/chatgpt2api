@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 3.2.5 - 2026-09-18
+
++ [修复] 文本流排除 ChatGPT Web 内部工具命令、工具结果及其增量，避免污染客户端 Function Calling 响应并导致 Claude Code 工具调用退化为普通文本。
+
 ## 3.2.4 - 2026-09-18
 
 + [修复] 将对话接口的 `low`、`medium` 推理强度转换为 ChatGPT Web 的 `standard`，将 `high`、`xhigh` 转换为 `extended`，避免 Claude Code 等客户端触发上游 422。
