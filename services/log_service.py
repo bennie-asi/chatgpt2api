@@ -411,7 +411,8 @@ def _exception_log_fields(exc: Exception, *, image: bool = False) -> dict[str, o
         failure = _final_image_failure(exc)
         fields.update(failure.diagnostic_fields())
         fields["error_code"] = failure.code
-        fields["public_error"] = _public_image_exception_message(exc, failure)
+        if image:
+            fields["public_error"] = _public_image_exception_message(exc, failure)
         if failure.code == "image_poll_timeout":
             fields.pop("raw_error", None)
         elif "raw_error" not in fields and not hasattr(exc, "raw_error"):

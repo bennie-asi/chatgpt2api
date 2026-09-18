@@ -198,6 +198,17 @@ def ensure_ok(
 ) -> None:
     if 200 <= response.status_code < 300:
         return
+    if getattr(response, "queue", None) is not None:
+        # curl_cffi leaves .content empty until a streaming body is consumed.
+        chunks = bytearray()
+        try:
+            for chunk in response.iter_content():
+                chunks.extend(chunk[:65536 - len(chunks)])
+                if len(chunks) >= 65536:
+                    break
+        finally:
+            response.close()
+        response.content = bytes(chunks)
     body: Any = response.text
     try:
         body = response.json()

@@ -3591,8 +3591,8 @@ class OpenAIBackendAPI:
             timeout=300,
             stream=True,
         )
-        ensure_ok(response, path)
         try:
+            ensure_ok(response, path)
             yield from iter_sse_payloads(response)
         finally:
             response.close()

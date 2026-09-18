@@ -7,9 +7,9 @@ def normalize_thinking_effort(value: object) -> str:
     normalized = str(value or "").strip().lower()
     if normalized in {"", "none"}:
         return ""
-    if normalized in {"low", "medium", "high"}:
-        return normalized
-    if normalized in {"xhigh", "extended"}:
+    if normalized in {"low", "medium", "standard"}:
+        return "standard"
+    if normalized in {"high", "xhigh", "extended"}:
         return "extended"
     return ""
 

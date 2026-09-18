@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 3.2.4 - 2026-09-18
+
++ [修复] 将对话接口的 `low`、`medium` 推理强度转换为 ChatGPT Web 的 `standard`，将 `high`、`xhigh` 转换为 `extended`，避免 Claude Code 等客户端触发上游 422。
++ [修复] 读取并限制上游流式 HTTP 错误正文，关闭失败连接；文本请求的网络与上游错误日志不再误显示为图片生成错误。
+
 ## 3.2.3 - 2026-09-09
 
 + [新增] Python 图片接口和共享模型列表支持 `gpt-image-2.5`、`gpt-image-2.5-flare`、`gpt-image-2.5-sunburst`，通过 ChatGPT Web 的 `auto` 路由兼容，不包含 `exact` 别名。
