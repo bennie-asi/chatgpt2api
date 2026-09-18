@@ -11,16 +11,16 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-v3.2.0-111827" alt="Version v3.2.0" />
+  <img src="https://img.shields.io/badge/version-v3.2.3-111827" alt="Version v3.2.3" />
   <img src="https://img.shields.io/badge/Python-3.13-3776AB?logo=python&logoColor=white" alt="Python 3.13" />
   <img src="https://img.shields.io/badge/Vue-3-4FC08D?logo=vue.js&logoColor=white" alt="Vue 3" />
   <img src="https://img.shields.io/badge/PostgreSQL-18-4169E1?logo=postgresql&logoColor=white" alt="PostgreSQL 18" />
   <img src="https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white" alt="Docker ready" />
-  <img src="https://img.shields.io/badge/License-CNC--1.0-red" alt="License CNC-1.0" />
+  <a href="./LICENSE"><img src="https://img.shields.io/badge/License-AGPL--3.0-blue" alt="License AGPL-3.0" /></a>
 </p>
 
 <p align="center">
-  <a href="https://github.com/yukkcat/chatgpt2api/releases/tag/v3.2.0">v3.2.0 Release</a>
+  <a href="https://github.com/yukkcat/chatgpt2api/releases/tag/v3.2.3">v3.2.3 Release</a>
   · <a href="./CHANGELOG.md">Changelog</a>
   · <a href="./docs/README.md">Documentation</a>
 </p>
@@ -45,10 +45,10 @@ curl -fsSL https://raw.githubusercontent.com/yukkcat/chatgpt2api/main/deploy/ins
 
 The installer lets you choose SQLite, a local PostgreSQL 18 container, or an existing PostgreSQL URL. SQLite requires no additional service. Local PostgreSQL is started and persisted automatically through Compose.
 
-To install the fixed `v3.2.0` release:
+To install the fixed `v3.2.3` release:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/yukkcat/chatgpt2api/v3.2.0/deploy/install.sh | sudo bash -s -- --branch v3.2.0
+curl -fsSL https://raw.githubusercontent.com/yukkcat/chatgpt2api/v3.2.3/deploy/install.sh | sudo bash -s -- --branch v3.2.3
 ```
 
 ### Docker Compose
@@ -139,7 +139,7 @@ Authorization: Bearer <auth-key>
 
 | Endpoint | Method | Description |
 | :--- | :--- | :--- |
-| `/v1/models` | `GET` | Returns the merged local and live upstream model catalog |
+| `/v1/models` | `GET` | Returns the shared console model catalog; default chat models are `gpt-5.6` and `auto` |
 | `/v1/chat/completions` | `POST` | Chat Completions entry point for text, search, and image scenarios |
 | `/v1/responses` | `POST` | Responses entry point with text, search, and image tools |
 | `/v1/messages` | `POST` | Anthropic Messages-compatible entry point |
@@ -316,6 +316,12 @@ The frontend development server defaults to `http://localhost:5173`, with backen
 | [Upstream SSE](./docs/upstream-sse-conversation.md) | Conversation and stream-parsing boundaries |
 
 If documentation conflicts with the implementation, the current code, tests, and public API contracts are authoritative.
+
+## License
+
+The current repository is distributed under the [GNU Affero General Public License v3.0](./LICENSE) (`AGPL-3.0-only`). If you modify the software and make it available over a network, you must offer the corresponding source code to users of that service as required by the license.
+
+Code derived from [basketikun/chatgpt2api](https://github.com/basketikun/chatgpt2api) retains its original MIT copyright and license notice; see [NOTICE](./NOTICE). Versions previously released under MIT remain available under their original license.
 
 ## Project Contributors
 

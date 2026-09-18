@@ -33,11 +33,16 @@
               :refresh-account-interval-field="refreshAccountIntervalField"
               :image-retention-hours-field="imageRetentionHoursField"
               :log-retention-hours-field="logRetentionHoursField"
+              :console-request-timeout-field="consoleRequestTimeoutField"
               :image-poll-timeout-field="imagePollTimeoutField"
               :image-stream-timeout-field="imageStreamTimeoutField"
+              :image-poll-initial-wait-field="imagePollInitialWaitField"
+              :image-poll-interval-field="imagePollIntervalField"
               :image-account-concurrency-field="imageAccountConcurrencyField"
               :account-processing-concurrency-field="accountProcessingConcurrencyField"
             />
+
+            <SettingsDashboardPreferencesPanel />
 
             <FormSection title="全局附加指令">
               <FormField label="全局系统提示词">
@@ -306,6 +311,7 @@ import {
   type SettingsFields,
 } from '@/views/settings/settingsView'
 import SettingsBasicConfigPanel from '@/views/settings/SettingsBasicConfigPanel.vue'
+import SettingsDashboardPreferencesPanel from '@/views/settings/SettingsDashboardPreferencesPanel.vue'
 import SettingsBasicPolicyPanel from '@/views/settings/SettingsBasicPolicyPanel.vue'
 import SettingsBackupPanel from '@/views/settings/SettingsBackupPanel.vue'
 import SettingsExternalSourceModals from '@/views/settings/SettingsExternalSourceModals.vue'
@@ -517,6 +523,14 @@ const refreshAccountIntervalField = useNumberSettingField(
   },
   { integer: true, metadata: () => fieldMetadata('refresh_account_interval_minute') },
 )
+const consoleRequestTimeoutField = useNumberSettingField(
+  () => localSettings.value?.console_request_timeout_secs,
+  (value) => {
+    if (!localSettings.value) return
+    localSettings.value.console_request_timeout_secs = value
+  },
+  { integer: true, metadata: () => fieldMetadata('console_request_timeout_secs') },
+)
 const imagePollTimeoutField = useNumberSettingField(
   () => localSettings.value?.image_poll_timeout_secs,
   (value) => {
@@ -532,6 +546,22 @@ const imageStreamTimeoutField = useNumberSettingField(
     localSettings.value.image_stream_timeout_secs = value
   },
   { integer: true, metadata: () => fieldMetadata('image_stream_timeout_secs') },
+)
+const imagePollInitialWaitField = useNumberSettingField(
+  () => localSettings.value?.image_poll_initial_wait_secs,
+  (value) => {
+    if (!localSettings.value) return
+    localSettings.value.image_poll_initial_wait_secs = value
+  },
+  { metadata: () => fieldMetadata('image_poll_initial_wait_secs') },
+)
+const imagePollIntervalField = useNumberSettingField(
+  () => localSettings.value?.image_poll_interval_secs,
+  (value) => {
+    if (!localSettings.value) return
+    localSettings.value.image_poll_interval_secs = value
+  },
+  { metadata: () => fieldMetadata('image_poll_interval_secs') },
 )
 const imageAccountConcurrencyField = useNumberSettingField(
   () => localSettings.value?.image_account_concurrency,
@@ -596,8 +626,11 @@ const numberSettingFields = [
   imageRetentionHoursField,
   logRetentionHoursField,
   refreshAccountIntervalField,
+  consoleRequestTimeoutField,
   imagePollTimeoutField,
   imageStreamTimeoutField,
+  imagePollInitialWaitField,
+  imagePollIntervalField,
   imageAccountConcurrencyField,
   accountProcessingConcurrencyField,
   imageMaxAccountAttemptsField,

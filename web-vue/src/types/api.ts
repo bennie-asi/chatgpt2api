@@ -69,8 +69,11 @@ export interface Settings {
   refresh_account_interval_minute: number
   image_retention_hours: number
   log_retention_hours: number
+  console_request_timeout_secs: number
   image_poll_timeout_secs: number
   image_stream_timeout_secs: number
+  image_poll_initial_wait_secs: number
+  image_poll_interval_secs: number
   image_account_concurrency: number
   account_processing_concurrency: number
   image_account_retry_enabled: boolean
@@ -284,7 +287,27 @@ export interface DashboardMetrics {
 }
 
 export interface DashboardRuntime {
-  current_concurrency: number
+  runtime_mode: 'docker' | 'native'
+  instance_name: string
+  distribution: string
+  kernel_version: string
+  architecture: string
+  python_version: string
+  cpu_capacity: number
+  service_started_at: string
+  service_uptime_seconds: number
+  process_cpu_percent: number | null
+  process_memory_bytes: number | null
+  process_memory_percent: number | null
+  memory_scope: 'container' | 'system' | 'visible'
+  memory_percent: number | null
+  storage_percent: number | null
+  network_rx_bytes_per_sec: number | null
+  network_tx_bytes_per_sec: number | null
+}
+
+export interface DashboardOperations {
+  active_requests: number
 }
 
 export interface DashboardAccountStats {
@@ -366,6 +389,7 @@ export interface DashboardResponse {
   meta: DashboardMeta
   metrics: DashboardMetrics
   runtime: DashboardRuntime
+  operations: DashboardOperations
   accounts: DashboardAccountStats
   storage: {
     application_database: Record<string, unknown>

@@ -11,16 +11,16 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-v3.2.0-111827" alt="Version v3.2.0" />
+  <img src="https://img.shields.io/badge/version-v3.2.3-111827" alt="Version v3.2.3" />
   <img src="https://img.shields.io/badge/Python-3.13-3776AB?logo=python&logoColor=white" alt="Python 3.13" />
   <img src="https://img.shields.io/badge/Vue-3-4FC08D?logo=vue.js&logoColor=white" alt="Vue 3" />
   <img src="https://img.shields.io/badge/PostgreSQL-18-4169E1?logo=postgresql&logoColor=white" alt="PostgreSQL 18" />
   <img src="https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white" alt="Docker ready" />
-  <img src="https://img.shields.io/badge/License-CNC--1.0-red" alt="License CNC-1.0" />
+  <a href="./LICENSE"><img src="https://img.shields.io/badge/License-AGPL--3.0-blue" alt="License AGPL-3.0" /></a>
 </p>
 
 <p align="center">
-  <a href="https://github.com/yukkcat/chatgpt2api/releases/tag/v3.2.0">v3.2.0 Release</a>
+  <a href="https://github.com/yukkcat/chatgpt2api/releases/tag/v3.2.3">v3.2.3 Release</a>
   · <a href="./CHANGELOG.md">更新说明</a>
   · <a href="./docs/README.md">维护文档</a>
 </p>
@@ -39,6 +39,21 @@
   &nbsp;&nbsp;·&nbsp;&nbsp; <a href="https://api.klong.lat">生图 API：小量 ¥0.02/张 · 中转 ¥0.01/张 · 大量/企业 ¥0.009/张</a>
 </p>
 
+## 赞助商
+
+<table width="100%">
+  <tr>
+    <td align="center" valign="middle">
+      <a href="https://www.ipwo.net/?ref=githubchatgpt2api"><img src="docs/images/IPWO.png" width="100%" alt="IPWO住宅代理"></a>
+    </td>
+  </tr>
+  <tr>
+    <td valign="middle">
+      &nbsp;<strong><a href="https://www.ipwo.net/?ref=githubchatgpt2api"><u>IPWO</u></a></strong>&nbsp;覆盖195+地区动态住宅代理、静态住宅代理和不限量住宅代理支持HTTP、HTTPS及SOCKS5协议，为AI应用、多账号管理、自动化及海外网络访问提供灵活的代理解决方案。专属折扣码：<strong>0205</strong>
+    </td>
+  </tr>
+</table>
+
 ## 快速部署
 
 ### 一键安装
@@ -49,10 +64,10 @@ curl -fsSL https://raw.githubusercontent.com/yukkcat/chatgpt2api/main/deploy/ins
 
 安装时可选择 SQLite、本地 PostgreSQL 18 容器或已有 PostgreSQL URL。SQLite 无需额外配置；本地 PostgreSQL 由 Compose 自动启动并持久化。
 
-固定安装 `v3.2.0`：
+固定安装 `v3.2.3`：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/yukkcat/chatgpt2api/v3.2.0/deploy/install.sh | sudo bash -s -- --branch v3.2.0
+curl -fsSL https://raw.githubusercontent.com/yukkcat/chatgpt2api/v3.2.3/deploy/install.sh | sudo bash -s -- --branch v3.2.3
 ```
 
 ### Docker Compose
@@ -139,7 +154,7 @@ Authorization: Bearer <auth-key>
 
 | 接口                                | 方法         | 说明                                                 |
 | :---------------------------------- | :----------- | :--------------------------------------------------- |
-| `/v1/models`                        | `GET`        | 返回本地目录与上游实时模型合并后的模型列表           |
+| `/v1/models`                        | `GET`        | 返回与控制台一致的模型目录，默认聊天模型为 `gpt-5.6`、`auto` |
 | `/v1/chat/completions`              | `POST`       | 文本、搜索和图片场景的 Chat Completions 入口         |
 | `/v1/responses`                     | `POST`       | 支持文本、搜索和图片工具调用的 Responses 入口        |
 | `/v1/messages`                      | `POST`       | Anthropic Messages 兼容入口                          |
@@ -316,6 +331,12 @@ npm run dev
 | [上游 SSE](./docs/upstream-sse-conversation.md)    | 会话与流式解析边界                   |
 
 文档与实现冲突时，以当前代码、测试和公开接口契约为准。
+
+## 许可证
+
+本仓库当前版本以 [GNU Affero General Public License v3.0](./LICENSE)（`AGPL-3.0-only`）发布。修改后通过网络提供服务时，须按协议向服务用户提供对应源码。
+
+源自 [basketikun/chatgpt2api](https://github.com/basketikun/chatgpt2api) 的代码继续保留原 MIT 版权与许可声明，详见 [NOTICE](./NOTICE)。此前已按 MIT 发布的版本仍适用其原许可证。
 
 ## 本项目贡献者
 
